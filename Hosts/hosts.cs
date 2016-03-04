@@ -73,11 +73,15 @@ namespace Hosts
         public void Merge(string filename)
         {
             File.Delete(filename);
-            File.AppendAllText(filename, CreateHeader());
+
+            StreamWriter sw = new StreamWriter(filename);
+
+            sw.Write(CreateHeader());
+
             foreach (string[] host in entries)
-            {
-                File.AppendAllText(filename, host[0] + "\t" + host[1] + "\n");
-            }
+                sw.Write(host[0] + "\t" + host[1] + "\n");
+
+            sw.Close();
         }
     }
 }
