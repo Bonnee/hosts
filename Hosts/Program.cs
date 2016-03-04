@@ -20,7 +20,7 @@ namespace Hosts
 			Console.WriteLine ("Downloading from sources...");
 			h.GetHosts ();
 			Console.WriteLine ("Merging and saving...");
-			if(h.Merge ("C:/hosts"))
+			if(h.Merge ("E:/hosts"))
                 Console.WriteLine ("Done.");
 		}
 	}

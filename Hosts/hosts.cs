@@ -79,6 +79,7 @@ namespace Hosts
 
         public bool Merge(string filename)
         {
+<<<<<<< HEAD
             try
             {
                 if (File.Exists(filename))
@@ -93,6 +94,18 @@ namespace Hosts
                 Console.WriteLine("You have no permission to write in " + filename + ", moron.");
                 return false;
             }
+=======
+            File.Delete(filename);
+
+            StreamWriter sw = new StreamWriter(filename);
+
+            sw.Write(CreateHeader());
+
+            foreach (string[] host in entries)
+                sw.Write(host[0] + "\t" + host[1] + "\n");
+
+            sw.Close();
+>>>>>>> 9eb67867bfac59b6dd38e78653c0f038bd0e9188
         }
     }
 }
