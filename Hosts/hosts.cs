@@ -37,11 +37,18 @@ namespace Hosts
             for (int i = 0; i < Sources.Count; i++)
             {
                 Console.WriteLine(Sources[i]);
-                string[] host = cl.DownloadString(Sources[i]).Split('\n');
-                for (int k = 0; k < host.Length; k++)
+                try
                 {
-                    if (isRelevant(host[k]))
-                        entries.Add(new string[] { addr, Clean(host[k]) });
+                    string[] host = cl.DownloadString(Sources[i]).Split('\n');
+                    for (int k = 0; k < host.Length; k++)
+                    {
+                        if (isRelevant(host[k]))
+                            entries.Add(new string[] { addr, Clean(host[k]) });
+                    }
+                }
+                catch (WebException e)
+                {
+                    Console.WriteLine(e.Message);
                 }
             }
         }
@@ -70,13 +77,21 @@ namespace Hosts
             return header;
         }
 
-        public void Merge(string filename)
+        public bool Merge(string filename)
         {
-            File.Delete(filename);
-            File.AppendAllText(filename, CreateHeader());
-            foreach (string[] host in entries)
+            try
             {
-                File.AppendAllText(filename, host[0] + "\t" + host[1] + "\n");
+                if (File.Exists(filename))
+                    File.Delete(filename);
+                File.AppendAllText(filename, CreateHeader());
+                foreach (string[] host in entries)
+                    File.AppendAllText(filename, host[0] + "\t" + host[1] + "\n");
+                return true;
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                Console.WriteLine("You have no permission to write in " + filename + ", moron.");
+                return false;
             }
         }
     }
