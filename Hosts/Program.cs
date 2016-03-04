@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Net;
-using System.IO;
-using System.Collections.Generic;
-using System.Linq.Expressions;
 
 namespace Hosts
 {
@@ -15,7 +11,8 @@ namespace Hosts
 				"http://adaway.org/hosts.txt",
 				"http://winhelp2002.mvps.org/hosts.txt",
 				"http://hosts-file.net/ad_servers.txt",
-				"http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext"
+				"http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext",
+                "http://someonewhocares.org/hosts/hosts"
 			};
 
 			hosts h = new hosts ("0.0.0.0", files);
@@ -23,7 +20,7 @@ namespace Hosts
 			Console.WriteLine ("Downloading from sources...");
 			h.GetHosts ();
 			Console.WriteLine ("Merging and saving...");
-			h.Merge ("/etc/hosts");
+			h.Merge ("E:/hosts");
 			Console.WriteLine ("Done.");
 		}
 	}
