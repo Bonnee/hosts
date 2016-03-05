@@ -1,28 +1,57 @@
 ﻿using System;
+using System.Configuration;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace Hosts
 {
 	class MainClass
 	{
+		static string dest;
+		static HostsManager h;
+
 		public static void Main (string[] args)
 		{
-
-			string[] files = new string[] {
-				"http://adaway.org/hosts.txt",
-				"http://winhelp2002.mvps.org/hosts.txt",
-				"http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext",
-				"http://someonewhocares.org/hosts/hosts",
-				"http://hosts-file.net/ad_servers.txt",	//Ads
-				"http://hosts-file.net/grm.txt"			//Spam
-			};
-
-			hosts h = new hosts ("0.0.0.0", files);
+			h = new HostsManager ();
+			Load (Environment.GetFolderPath (Environment.SpecialFolder.ApplicationData) + @"/hosts/settings");
 
 			Console.WriteLine ("Downloading from sources...");
 			h.GetHosts ();
 			Console.WriteLine ("Merging and saving...");
-			if (h.Merge ("/etc/hosts"))
+			if (h.Write (dest))
 				Console.WriteLine ("Done.");
+		}
+
+		static void Load (string path)
+		{
+			if (File.Exists (path)) {
+				string[] settings = File.ReadAllText (path).Split (new char[]{ '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+				foreach (string setting in settings) {
+					string[] s = setting.Split (new char[]{ ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+					if (s [0] == "source")
+						h.Sources.Add (s [1]);
+					else if (s [0] == "redirect")
+						h.Address = s [1];
+					else if (s [0] == "destination")
+						dest = s [1];
+				}
+			} else {
+				Console.WriteLine ("Loading default configuration in " + path);
+				LoadDefaults (path);
+			}
+		}
+
+		static void LoadDefaults (string path)
+		{
+			string file = "destination /etc/hosts\nredirect 0.0.0.0\nsource http://hosts-file.net/ad_servers.txt\nsource http://winhelp2002.mvps.org/hosts.txt\nsource http://someonewhocares.org/hosts/hosts\nsource http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext\nsource http://adaway.org/hosts.txt";
+			if (!Directory.Exists (Directory.GetParent (path).ToString ()))
+				Directory.CreateDirectory (Directory.GetParent (path).ToString ());
+			File.WriteAllText (path, file);
+
+			Load (path);
 		}
 	}
 }

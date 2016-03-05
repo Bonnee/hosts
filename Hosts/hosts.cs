@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Net;
 using System.IO;
 using System.Linq;
-using System.Diagnostics;
 
 namespace Hosts
 {
-	public class hosts
+	public class HostsManager
 	{
 		List<string[]> entries;
 
@@ -24,7 +23,13 @@ namespace Hosts
 
 		public List<string> Sources { get; set; }
 
-		public hosts (string address, string[] sources)
+		public HostsManager ()
+		{
+			entries = new List<string[]> ();
+			Sources = new List<string> ();
+		}
+
+		public HostsManager (string address, string[] sources)
 		{
 			entries = new List<string[]> ();
 			Address = address;
@@ -102,7 +107,7 @@ namespace Hosts
 			return header;
 		}
 
-		public bool Merge (string filename)
+		public bool Write (string filename)
 		{
 			try {
 				if (File.Exists (filename))
@@ -112,6 +117,7 @@ namespace Hosts
 				foreach (string[] host in entries)
 					sw.Write (host [0] + "\t" + host [1] + "\n");
 				sw.Close ();
+				Console.WriteLine (entries.Count + " entries written successfully.");
 				return true;
 			} catch (UnauthorizedAccessException) {
 				Console.WriteLine ("You have no permission to write in " + filename + ", moron.");
