@@ -26,6 +26,7 @@ namespace Hosts
 		static void Load (string path)
 		{
 			if (File.Exists (path)) {
+                Console.WriteLine("Loading config from: " + path);
 				string[] settings = File.ReadAllText (path).Split (new char[]{ '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
 				foreach (string setting in settings) {
@@ -46,7 +47,7 @@ namespace Hosts
 
 		static void LoadDefaults (string path)
 		{
-			string file = "destination /etc/hosts\nredirect 0.0.0.0\nsource http://hosts-file.net/ad_servers.txt\nsource http://winhelp2002.mvps.org/hosts.txt\nsource http://someonewhocares.org/hosts/hosts\nsource http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext\nsource http://adaway.org/hosts.txt";
+			string file = "destination /etc/hosts\nredirect 0.0.0.0\n# Pro tip: order the sources by file size from the biggest to the smallest.\nsource http://hosts-file.net/ad_servers.txt\nsource http://winhelp2002.mvps.org/hosts.txt\nsource http://someonewhocares.org/hosts/hosts\nsource http://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext\nsource http://adaway.org/hosts.txt";
 			if (!Directory.Exists (Directory.GetParent (path).ToString ()))
 				Directory.CreateDirectory (Directory.GetParent (path).ToString ());
 			File.WriteAllText (path, file);
