@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Net;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Hosts
 {
 	public class HostsManager
 	{
+        static readonly object locker = new object();
 		List<string[]> entries;
 
 		public List<string[]> Hosts { get { return entries; } }
@@ -41,7 +43,6 @@ namespace Hosts
 			WebClient cl = new WebClient ();
 			cl.Proxy.Credentials = CredentialCache.DefaultCredentials;
 
-			string[] entry;
 			int index;
 
 			foreach (string source in Sources) {
@@ -53,16 +54,8 @@ namespace Hosts
 					Console.Write ("Adding...");
 					index = Console.CursorLeft;
 
-					for (int i = 0; i < host.Length; i++) {
-						
-						if (isRelevant (host [i])) {
-							entry = new string[] { addr, Clean (host [i]) };
-							if (!Exists (entries, entry)) {
-								entries.Add (entry);
-								Console.CursorLeft = index;
-								Console.Write (i + 1 + "/" + host.Length);
-							}
-						}
+					for (int i = 0; i < host.Length - 1; i++) {
+                        new Task<bool>(() => CheckAndAdd(host[i])).Start();
 					}
 					Console.Write ("...Done.\n");
 
@@ -74,6 +67,24 @@ namespace Hosts
 
 			entries = entries.OrderBy (o => o [1]).ToList ();
 		}
+
+        bool CheckAndAdd(string host)
+        {
+            if (isRelevant(host))
+            {
+                string[] entry = new string[] { addr, Clean(host) };
+                lock (locker)
+                {
+                    if (!Exists(entries, entry))
+                    {
+                        entries.Add(entry);
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return false;
+        }
 
 		bool Exists (List<string[]> list, string[] arr)
 		{
