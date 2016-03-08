@@ -52,6 +52,7 @@ namespace Hosts
 					string[] host = cl.DownloadString (source).Split ('\n');
 					Console.Write ("Adding...");
 					index = Console.CursorLeft;
+                    int add = 0;
 
 					for (int i = 0; i < host.Length; i++) {
 						
@@ -60,11 +61,13 @@ namespace Hosts
 							if (!Exists (entries, entry)) {
 								entries.Add (entry);
 								Console.CursorLeft = index;
-								Console.Write (i + 1 + "/" + host.Length);
+                                add++;
+								Console.Write (add + "/" + host.Length);
 							}
 						}
 					}
 					Console.Write ("...Done.\n");
+                    add = 0;
 
 				} catch (WebException e) {
 					Console.WriteLine (e.Message);
