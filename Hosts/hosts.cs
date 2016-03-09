@@ -9,11 +9,9 @@ namespace Hosts
     public class HostsManager
     {
         List<string[]> entries;
-
         public List<string[]> Hosts { get { return entries; } }
 
         string addr;
-
         public string Address
         {
             get { return addr; }
@@ -37,6 +35,10 @@ namespace Hosts
             Sources = new List<string>(sources);
         }
 
+        /// <summary>
+        /// Fetches the hosts files from all the sources and adds them to "Hosts" list
+        /// </summary>
+        /// <returns>If the operation succedded.</returns>
         public bool GetHosts()
         {
             WebClient cl = new WebClient();
@@ -48,11 +50,9 @@ namespace Hosts
 
             foreach (string source in Sources)
             {
-                Console.Write(source + "...");
-
+                Console.Write(Sources.IndexOf(source) + 1 + "/" + Sources.Count + " " + source + "...");
                 try
                 {
-
                     string[] host = cl.DownloadString(source).Split('\n');
                     Console.Write("Adding...");
                     index = Console.CursorLeft;
@@ -60,7 +60,6 @@ namespace Hosts
 
                     for (int i = 0; i < host.Length; i++)
                     {
-
                         if (isRelevant(host[i]))
                         {
                             entry = new string[] { addr, Clean(host[i]) };
@@ -92,6 +91,12 @@ namespace Hosts
             return true;
         }
 
+        /// <summary>
+        /// Check if the given host already exists in the given list
+        /// </summary>
+        /// <param name="list">The list to check</param>
+        /// <param name="arr">The element to verify</param>
+        /// <returns></returns>
         bool Exists(List<string[]> list, string[] arr)
         {
             for (int i = 0; i < list.Count; i++)
@@ -102,6 +107,11 @@ namespace Hosts
             return false;
         }
 
+        /// <summary>
+        /// Checks wether the string given is a valid host entry
+        /// </summary>
+        /// <param name="line">The line to check</param>
+        /// <returns>If the line is valid</returns>
         bool isRelevant(string line)
         {
             line = line.Replace(" ", ",");
@@ -110,11 +120,20 @@ namespace Hosts
             return true;
         }
 
+        /// <summary>
+        /// Cleans the entry
+        /// </summary>
+        /// <param name="line">The string to clean</param>
+        /// <returns>The cleaned string</returns>
         string Clean(string line)
         {
             return line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)[1].Replace("\r", "");
         }
 
+        /// <summary>
+        /// Creates the header for the hosts file
+        /// </summary>
+        /// <returns>The header</returns>
         string CreateHeader()
         {
             string header = "# Host file courtesy of SuperBonny.\n# This list was updated on " + DateTime.Now.ToShortDateString() + " at " + DateTime.Now.ToShortTimeString() + "\n# There are " + entries.Count + " hosts present.\n# These are the sources:\n#\n# ";
@@ -126,6 +145,11 @@ namespace Hosts
             return header;
         }
 
+        /// <summary>
+        /// Writes the file to disk
+        /// </summary>
+        /// <param name="filename">The path of the file</param>
+        /// <returns>If the operation succedded</returns>
         public bool Write(string filename)
         {
             try
