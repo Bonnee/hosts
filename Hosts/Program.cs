@@ -27,6 +27,7 @@ namespace Hosts
 
         static void Load(string path)
         {
+            path = Path.GetFullPath(path);
             if (File.Exists(path))
             {
                 Console.WriteLine("Loading config from: " + path);
@@ -46,7 +47,6 @@ namespace Hosts
             }
             else
             {
-
                 Console.WriteLine("Loading default configuration in " + path);
                 LoadDefaults(path);
             }
