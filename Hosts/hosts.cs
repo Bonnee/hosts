@@ -165,7 +165,7 @@ namespace Hosts
 			foreach (string s in Sources) {
 				header += s + "\n# ";
 			}
-			header += "\n127.0.0.1 localhost\n::1 localhost\n\n# [START OF GENERATED ENTRIES]\n#\n";
+			header += "\n127.0.0.1 localhost\n127.0.0.1 " + System.Environment.MachineName + "\n::1 localhost\n\n# [START OF GENERATED ENTRIES]\n#\n";
 			return header;
 		}
 
