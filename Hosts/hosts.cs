@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Collections;
 
 namespace Hosts
 {
@@ -47,55 +48,45 @@ namespace Hosts
         {
             List<List<string[]>> partial = new List<List<string[]>>();
 
-            int index;
-            int errors = 0;
+            List<Task<List<string[]>>> worker = new List<Task<List<string[]>>>();
 
-            List<Task> worker = new List<Task>();
-
-            foreach (string source in Sources)
-            {
-                worker.Add(new Task(() =>
-                {
-
-                    Console.WriteLine(Sources.IndexOf(source) + 1 + "/" + Sources.Count + " " + source + "...");
-
-                    // Downloads the file
-                    string[] raw = Download(source);
-                    if (raw != default(string[]))
-                    {
-                        // Adds a nes list to the partial list
-                        partial.Add(new List<string[]>());
-                        partial[partial.Count - 1] = Parse(raw);
-                    }
-
-                }));
-                worker[worker.Count - 1].Start();
+            foreach (string source in Sources){
+                worker.Add(Task<List<string[]>>.Factory.StartNew(() => Get(source)));
             }
 
-            foreach (Task t in worker)
+            foreach (Task<List<string[]>> t in worker)
             {
                 t.Wait();
+                partial.Add(t.Result);
             }
 
-            Console.Write("\nMerging...");
-
-            foreach (List<string[]> list in partial)
-            {
-                for (int i = 0; i < list.Count; i++)
-                {
-                    if (!Exists(entries, list[i]))
-                    {
-                        entries.Add(list[i]);
-                    }
-                }
-            }
-            Console.WriteLine("Done.");
-
-            if (errors >= Sources.Count)
-                return false;
             entries = entries.OrderBy(o => o[1]).ToList();
             return true;
         }
+
+        List<string[]> Get(string source)
+        {
+            List<string[]> partial = new List<string[]>();
+            Console.WriteLine(Sources.IndexOf(source) + 1 + "/" + Sources.Count + " " + source + "...");
+
+            // Downloads the file
+            string[] raw = Download(source);
+            if (raw != default(string[]))
+            {
+                partial = Parse(raw);
+            }
+
+
+            for (int i = 0; i < partial.Count; i++)
+            {
+                lock (((ICollection)entries).SyncRoot)
+                    if (!Exists(entries, partial[i]))
+                        entries.Add(partial[i]);
+            }
+            return partial;
+        }
+
+
 
         /// <summary>
         /// Downloads the file at the specified URL
@@ -150,10 +141,8 @@ namespace Hosts
         bool Exists(List<string[]> list, string[] arr)
         {
             for (int i = 0; i < list.Count; i++)
-            {
                 if (list[i][1] == arr[1])
                     return true;
-            }
             return false;
         }
 
