@@ -10,6 +10,8 @@ namespace Hosts
 {
     public class HostsManager
     {
+        private static readonly object ConsoleWriterLock = new object();
+
         List<string[]> entries;
 
         public List<string[]> Hosts { get { return entries; } }
@@ -67,7 +69,8 @@ namespace Hosts
         List<string[]> Get(string source)
         {
             List<string[]> partial = new List<string[]>();
-            Console.WriteLine(Sources.IndexOf(source) + 1 + "/" + Sources.Count + " " + source + "...");
+
+            Pair<int, int> pos = ConsoleWriteLine(Sources.IndexOf(source) + 1 + "/" + Sources.Count + " " + source + "...\n");
 
             // Downloads the file
             string[] raw = Download(source);
@@ -79,7 +82,30 @@ namespace Hosts
                     if (!Exists(entries, partial[i]))
                         entries.Add(partial[i]);
 
+            ConsoleWrite(partial.Count.ToString(), pos.First, pos.Second);
             return partial;
+        }
+
+        Pair<int, int> ConsoleWrite(string message, int left = -1, int top = -1)
+        {
+            lock (ConsoleWriterLock)
+            {
+                if (left == -1)
+                    left = Console.CursorLeft;
+                if (top == -1)
+                    top = Console.CursorTop;
+                Console.SetCursorPosition(left, top);
+                Console.Write(message.Remove(message.Length - 1));
+                Pair<int, int> p = new Pair<int, int>(Console.CursorLeft, Console.CursorTop);
+                return p;
+            }
+        }
+
+        Pair<int, int> ConsoleWriteLine(string message, int left = -1, int top = -1)
+        {
+            Pair<int, int> p = ConsoleWrite(message, left, top);
+            Console.WriteLine();
+            return p;
         }
 
         /// <summary>
@@ -205,6 +231,18 @@ namespace Hosts
                 Console.ResetColor();
                 return false;
             }
+        }
+    }
+
+    public class Pair<T1, T2>
+    {
+        public T1 First { get; set; }
+        public T2 Second { get; set; }
+
+        public Pair(T1 v1, T2 v2)
+        {
+            First = v1;
+            Second = v2;
         }
     }
 }
