@@ -1,11 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
-using System.Threading;
-using System.Collections;
 
 namespace Hosts
 {
@@ -50,7 +49,8 @@ namespace Hosts
 
             List<Task<List<string[]>>> worker = new List<Task<List<string[]>>>();
 
-            foreach (string source in Sources){
+            foreach (string source in Sources)
+            {
                 worker.Add(Task<List<string[]>>.Factory.StartNew(() => Get(source)));
             }
 
@@ -72,21 +72,15 @@ namespace Hosts
             // Downloads the file
             string[] raw = Download(source);
             if (raw != default(string[]))
-            {
                 partial = Parse(raw);
-            }
-
 
             for (int i = 0; i < partial.Count; i++)
-            {
                 lock (((ICollection)entries).SyncRoot)
                     if (!Exists(entries, partial[i]))
                         entries.Add(partial[i]);
-            }
+
             return partial;
         }
-
-
 
         /// <summary>
         /// Downloads the file at the specified URL
