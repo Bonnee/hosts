@@ -1,23 +1,64 @@
 ﻿using System;
 using System.IO;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Hosts
 {
 	class MainClass
 	{
+		static object locker = new object ();
+
 		static string dest;
 		static HostsManager h;
+
+		static List<string> sources;
+		static List<string[]> entries;
+		static string address = "0.0.0.0";
 
 		public static void Main (string[] args)
 		{
 			h = new HostsManager ();
+			sources = new List<string> ();
+			entries = new List<string[]> ();
+
 			Load (Environment.GetFolderPath (Environment.SpecialFolder.ApplicationData) + @"/hosts/settings");
 
 			Console.WriteLine ("Downloading from sources...");
-			if (h.GetHosts ()) {
-				if (h.Write (dest))
-					Console.WriteLine ("Done.");
+			List<Task> workers = new List<Task> ();
+
+			for (int i = 0; i < sources.Count; i++) {
+				int ind = i;
+				workers.Add (new Task (() => Do (ind)));
+				workers [ind].Start ();
 			}
+
+			foreach (Task worker in workers) {
+				worker.Wait ();
+			}
+
+			h.Write (dest, entries, CreateHeader ());
+		}
+
+		static void Do (int index)
+		{
+			Console.WriteLine (sources [index]);
+
+			foreach (string[] entry in h.Parse (h.Download (sources[index]),address))
+				if (!h.Exists (entries, entry)) {
+					lock (locker)
+						entries.Add (entry);
+				}
+		}
+
+		static string[] CreateHeader ()
+		{
+			string header = "# Host file courtesy of SuperBonny.\n# This list was updated on " + DateTime.Now.ToShortDateString () + " at " + DateTime.Now.ToShortTimeString () + "\n# There are " + entries.Count + " hosts present.\n# These are the sources:\n#\n# ";
+			foreach (string s in sources) {
+				header += s + "\n# ";
+			}
+			header += "\n127.0.0.1 localhost " + System.Environment.MachineName + "\n::1 localhost\n\n# [START OF GENERATED ENTRIES]\n#\n";
+			return header.Split ('\n');
 		}
 
 		static void Load (string path)
@@ -31,9 +72,9 @@ namespace Hosts
 					string[] s = setting.Split (new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
 					if (s [0] == "source")
-						h.Sources.Add (s [1]);
+						sources.Add (s [1]);
 					else if (s [0] == "redirect")
-						h.Address = s [1];
+						address = s [1];
 					else if (s [0] == "destination")
 						dest = s [1];
 				}

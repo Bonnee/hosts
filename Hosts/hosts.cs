@@ -8,241 +8,114 @@ using System.Threading.Tasks;
 
 namespace Hosts
 {
-    public class HostsManager
-    {
-        private static readonly object ConsoleWriterLock = new object();
+	public class HostsManager
+	{
+		public string Header { get; set; }
 
-        List<string[]> entries;
+		public HostsManager ()
+		{
+		}
 
-        public List<string[]> Hosts { get { return entries; } }
+		/// <summary>
+		/// Downloads the file from the specified URL
+		/// </summary>
+		/// <param name="source">The URL</param>
+		/// <returns></returns>
+		public string[] Download (string source)
+		{
+			WebClient cl = new WebClient ();
+			cl.Proxy.Credentials = CredentialCache.DefaultCredentials;
+			try {
+				return cl.DownloadString (source).Split ('\n');
+			} catch (WebException e) {
+				Console.BackgroundColor = ConsoleColor.Red;
+				Console.ForegroundColor = ConsoleColor.White;
+				Console.WriteLine (e.Message);
+				Console.ResetColor ();
+			}
+			return default(string[]);
+		}
 
-        string addr;
+		/// <summary>
+		/// Parses each line of the array and returns a host-formatted list
+		/// </summary>
+		/// <param name="source">The list of entries </param>
+		/// <returns>The formatted and cleaned list of entries</returns>
+		public List<string[]> Parse (string[] source, string address)
+		{
+			List<string[]> outp = new List<string[]> ();
+			string[] entry;
 
-        public string Address
-        {
-            get { return addr; }
-            set { addr = value; }
-        }
+			for (int i = 0; i < source.Length; i++) {
+				if (isRelevant (source [i])) {
+					entry = new string[] { address, Clean (source [i]) };
+					outp.Add (entry);
+				}
+			}
+			return outp;
+		}
 
-        public string Header { get; set; }
+		/// <summary>
+		/// Check if the given host already exists in the given list
+		/// </summary>
+		/// <param name="list">The list to check</param>
+		/// <param name="arr">The element to verify</param>
+		/// <returns></returns>
+		public bool Exists (List<string[]> list, string[] arr)
+		{
+			for (int i = 0; i < list.Count; i++)
+				if (list [i] [1] == arr [1])
+					return true;
+			return false;
+		}
 
-        public List<string> Sources { get; set; }
+		/// <summary>
+		/// Checks wether the string given is a valid host entry
+		/// </summary>
+		/// <param name="line">The line to check</param>
+		/// <returns>If the line is valid</returns>
+		bool isRelevant (string line)
+		{
+			line = line.Replace (" ", ",");
+			if (line.StartsWith ("#") || line.Length == 0 || line.StartsWith ("\r") || line.Contains ("localhost"))
+				return false;
+			return true;
+		}
 
-        public HostsManager()
-        {
-            entries = new List<string[]>();
-            Sources = new List<string>();
-        }
+		/// <summary>
+		/// Cleans the entry
+		/// </summary>
+		/// <param name="line">The string to clean</param>
+		/// <returns>The cleaned string</returns>
+		string Clean (string line)
+		{
+			return line.Split (new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries) [1].Replace ("\r", "");
+		}
 
-        public HostsManager(string address, string[] sources)
-        {
-            entries = new List<string[]>();
-            Address = address;
-            Sources = new List<string>(sources);
-        }
-
-        /// <summary>
-        /// Fetches the hosts files from all the sources and adds them to "Hosts" list
-        /// </summary>
-        /// <returns>If the operation succedded.</returns>
-        public bool GetHosts()
-        {
-            List<List<string[]>> partial = new List<List<string[]>>();
-
-            List<Task<List<string[]>>> worker = new List<Task<List<string[]>>>();
-
-            foreach (string source in Sources)
-            {
-                worker.Add(Task<List<string[]>>.Factory.StartNew(() => Get(source)));
-            }
-
-            foreach (Task<List<string[]>> t in worker)
-            {
-                t.Wait();
-                partial.Add(t.Result);
-            }
-
-            entries = entries.OrderBy(o => o[1]).ToList();
-            return true;
-        }
-
-        List<string[]> Get(string source)
-        {
-            List<string[]> partial = new List<string[]>();
-
-            Pair<int, int> pos = ConsoleWriteLine(Sources.IndexOf(source) + 1 + "/" + Sources.Count + " " + source + "...\n");
-
-            // Downloads the file
-            string[] raw = Download(source);
-            if (raw != default(string[]))
-                partial = Parse(raw);
-
-            for (int i = 0; i < partial.Count; i++)
-                lock (((ICollection)entries).SyncRoot)
-                    if (!Exists(entries, partial[i]))
-                        entries.Add(partial[i]);
-
-            ConsoleWrite(partial.Count.ToString(), pos.First, pos.Second);
-            return partial;
-        }
-
-        Pair<int, int> ConsoleWrite(string message, int left = -1, int top = -1)
-        {
-            lock (ConsoleWriterLock)
-            {
-                if (left == -1)
-                    left = Console.CursorLeft;
-                if (top == -1)
-                    top = Console.CursorTop;
-                Console.SetCursorPosition(left, top);
-                Console.Write(message.Remove(message.Length - 1));
-                Pair<int, int> p = new Pair<int, int>(Console.CursorLeft, Console.CursorTop);
-                return p;
-            }
-        }
-
-        Pair<int, int> ConsoleWriteLine(string message, int left = -1, int top = -1)
-        {
-            Pair<int, int> p = ConsoleWrite(message, left, top);
-            Console.WriteLine();
-            return p;
-        }
-
-        /// <summary>
-        /// Downloads the file at the specified URL
-        /// </summary>
-        /// <param name="source">The URL</param>
-        /// <returns></returns>
-        string[] Download(string source)
-        {
-            WebClient cl = new WebClient();
-            cl.Proxy.Credentials = CredentialCache.DefaultCredentials;
-            try
-            {
-                return cl.DownloadString(source).Split('\n');
-            }
-            catch (WebException e)
-            {
-                Console.BackgroundColor = ConsoleColor.Red;
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine(e.Message);
-                Console.ResetColor();
-            }
-            return default(string[]);
-        }
-
-        /// <summary>
-        /// Parses each line of the array and returns a host-formatted list
-        /// </summary>
-        /// <param name="source"></param>
-        /// <returns></returns>
-        List<string[]> Parse(string[] source)
-        {
-            List<string[]> outp = new List<string[]>();
-            string[] entry;
-
-            for (int i = 0; i < source.Length; i++)
-            {
-                if (isRelevant(source[i]))
-                {
-                    entry = new string[] { addr, Clean(source[i]) };
-                    outp.Add(entry);
-                }
-            }
-            return outp;
-        }
-
-        /// <summary>
-        /// Check if the given host already exists in the given list
-        /// </summary>
-        /// <param name="list">The list to check</param>
-        /// <param name="arr">The element to verify</param>
-        /// <returns></returns>
-        bool Exists(List<string[]> list, string[] arr)
-        {
-            for (int i = 0; i < list.Count; i++)
-                if (list[i][1] == arr[1])
-                    return true;
-            return false;
-        }
-
-        /// <summary>
-        /// Checks wether the string given is a valid host entry
-        /// </summary>
-        /// <param name="line">The line to check</param>
-        /// <returns>If the line is valid</returns>
-        bool isRelevant(string line)
-        {
-            line = line.Replace(" ", ",");
-            if (line.StartsWith("#") || line.Length == 0 || line.StartsWith("\r") || line.Contains("localhost"))
-                return false;
-            return true;
-        }
-
-        /// <summary>
-        /// Cleans the entry
-        /// </summary>
-        /// <param name="line">The string to clean</param>
-        /// <returns>The cleaned string</returns>
-        string Clean(string line)
-        {
-            return line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)[1].Replace("\r", "");
-        }
-
-        /// <summary>
-        /// Creates the header for the hosts file
-        /// </summary>
-        /// <returns>The header</returns>
-        string CreateHeader()
-        {
-            string header = "# Host file courtesy of SuperBonny.\n# This list was updated on " + DateTime.Now.ToShortDateString() + " at " + DateTime.Now.ToShortTimeString() + "\n# There are " + entries.Count + " hosts present.\n# These are the sources:\n#\n# ";
-            foreach (string s in Sources)
-            {
-                header += s + "\n# ";
-            }
-            header += "\n127.0.0.1 localhost " + System.Environment.MachineName + "\n::1 localhost\n\n# [START OF GENERATED ENTRIES]\n#\n";
-            return header;
-        }
-
-        /// <summary>
-        /// Writes the file to disk
-        /// </summary>
-        /// <param name="filename">The path of the file</param>
-        /// <returns>If the operation succedded</returns>
-        public bool Write(string filename)
-        {
-            try
-            {
-                if (File.Exists(filename))
-                    File.Delete(filename);
-                StreamWriter sw = new StreamWriter(filename);
-                sw.Write(CreateHeader());
-                foreach (string[] host in entries)
-                    sw.Write(host[0] + "\t" + host[1] + "\n");
-                sw.Close();
-                Console.WriteLine(entries.Count + " entries written successfully.");
-                return true;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                Console.BackgroundColor = ConsoleColor.Red;
-                Console.ForegroundColor = ConsoleColor.White;
-                Console.WriteLine("You have no permission to write in " + filename + ", moron.");
-                Console.ResetColor();
-                return false;
-            }
-        }
-    }
-
-    public class Pair<T1, T2>
-    {
-        public T1 First { get; set; }
-        public T2 Second { get; set; }
-
-        public Pair(T1 v1, T2 v2)
-        {
-            First = v1;
-            Second = v2;
-        }
-    }
+		/// <summary>
+		/// Writes the file to disk
+		/// </summary>
+		/// <param name="filename">The path of the file</param>
+		/// <returns>If the operation succedded</returns>
+		public bool Write (string filename, List<string[]> entries, string[] header)
+		{
+			try {
+				if (File.Exists (filename))
+					File.Delete (filename);
+				StreamWriter sw = new StreamWriter (filename);
+				sw.Write (header);
+				foreach (string[] host in entries)
+					sw.Write (host [0] + "\t" + host [1] + "\n");
+				sw.Close ();
+				Console.WriteLine (entries.Count + " entries written successfully.");
+				return true;
+			} catch (UnauthorizedAccessException) {
+				Console.BackgroundColor = ConsoleColor.Red;
+				Console.ForegroundColor = ConsoleColor.White;
+				Console.WriteLine ("You have no permission to write in " + filename + ", moron.");
+				Console.ResetColor ();
+				return false;
+			}
+		}
+	}
 }
